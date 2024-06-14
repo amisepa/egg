@@ -1,22 +1,19 @@
 %% Filter and plot electroencephalography (EGG) signal
-clear; close all; clc
+% clear; close all; clc
+% 
+% mainDir = 'G:\Shared drives\Grants\Granters (Foundations + Funders)\Bial\2022\(000) Yount_Bial_2022\Telly Belly Research';
+% codeDir = fullfile(mainDir, 'eeg_code');
+% dataDir = fullfile(mainDir, 'tests');
+% cd(dataDir)
+% eeglab; close;
 
-mainDir = 'G:\Shared drives\Grants\Granters (Foundations + Funders)\Bial\2022\(000) Yount_Bial_2022\Telly Belly Research';
-codeDir = fullfile(mainDir, 'eeg_code');
-dataDir = fullfile(mainDir, 'tests');
-cd(dataDir)
-eeglab; close;
+filename = 'test_020.edf';
 
-filename = 'test_003.edf';
-newFs = 100;  % downsampling to this freq (in Hz)
-fc = 0.1;     % cutoff freq for lowpass filter (in Hz)
+newFs = 100;        % downsampling to this freq (in Hz)
+lowpass = 0.1;      % cutoff freq for lowpass filter (in Hz)
+highpass = 0.001;   % cutoff freq for lowpass filter (in Hz)
 
-% CSV file
-% tmp = readmatrix(fullfile(dataDir, filename));
-% t = tmp(:,1)';
-% signal = tmp(:,2)';
-
-% EDF file
+% load EDF file
 EEG = import_edf(fullfile(dataDir,filename));
 
 % Remove bad segments with large artifacts
@@ -27,58 +24,53 @@ elseif str2double(filename(8)) == 5
     EEG = eeg_eegrej( EEG, [3370505 4802000]);
 % elseif str2double(filename(8)) == 6
 %     EEG = eeg_eegrej( EEG, [32751 36500] );
+elseif str2double(filename(7:8)) == 19
+    EEG = eeg_eegrej( EEG, [1 5709;14189 15458]);
+elseif str2double(filename(7:8)) == 20
+    EEG = eeg_eegrej( EEG, [1 9181;49982 52375]);
+elseif str2double(filename(7:8)) == 21
+    EEG = eeg_eegrej( EEG, [1 5240;41869 43000]);
+elseif str2double(filename(7:8)) == 22
+    EEG = eeg_eegrej( EEG, [1 13957;48916 57500]);
+
 end
 
-% Remove offsets from data rejection
+% Downsample to 100 Hz
+EEG = pop_resample(EEG, newFs);
 
-% convert to minutes
-t = EEG.times ./ 1000 ./ 60;
-signal = EEG.data;
+% filter signal
+EEG = pop_eegfiltnew(EEG, 'locutoff',highpass);
+EEG = pop_eegfiltnew(EEG, 'hicutoff',lowpass);
 
-% Interpolate NaNs if any
-tf = isnan(signal);
-if sum(tf)>0
-    warning('%g NaNs detected --> interpolating them',sum(tf))
-    ix = 1:length(signal);
-    signal(tf) = interp1(ix(~tf),signal(~tf),ix(tf));
-end
+% % Sample rate and Nyquist freq (times must be minutes!)
+% total_time = t(end)-t(1);
+% nSamples = length(signal);
+% fs = round(nSamples / (total_time*60)); % convert to seconds as it is in minutes
+% nf = fs/2;  % Nyquist freq
 
-% Plot raw signal
-figure('color','w'); 
-subplot(2,1,1)
-% envelope(signal,fs*5,'peak')
-plot(t,signal,'k-.')
-hold on; 
+% % Downsample/decimate
+% fac = fs / newFs; % downsample factor
+% if fac ~= floor(fac)
+%     fac = round(fac);
+%     signal = decimate(signal, fac);
+% else
+%     signal = resample(signal, 1, fac);
+% end
+% nf = newFs/2;  % update Nyquist
+% t = t(1:fac:end);
+% fs = newFs;
 
-% Sample rate and Nyquist freq (times must be minutes!)
-total_time = t(end)-t(1);
-nSamples = length(signal);
-fs = round(nSamples / (total_time*60)); % convert to seconds as it is in minutes
-nf = fs/2;  % Nyquist freq
-
-% Downsample/decimate
-fac = fs / newFs; % downsample factor
-if fac ~= floor(fac)
-    fac = round(fac);
-    signal = decimate(signal, fac);
-else
-    signal = resample(signal, 1, fac);
-end
-nf = newFs/2;  % update Nyquist
-t = t(1:fac:end);
-fs = newFs;
-
-% Lowpass filter
-Wn = fc/nf;                   % normalized cutoff frequency
-[z,p,k] = butter(3,Wn,'low');  % Butterworth filter
-[sos,g] = zp2sos(z,p,k);
-% freqz(sos, 2^14, fs)
-signal = filtfilt(sos,g,signal);
-plot(t,signal,'r','linewidth',1)
-title(sprintf('Raw EGG: %s',filename(1:end-4))); 
-xlabel('Time (min)')
-legend('raw','lowpass filtered at 0.1 Hz')
-axis tight
+% % Lowpass filter
+% Wn = fc/nf;                   % normalized cutoff frequency
+% [z,p,k] = butter(3,Wn,'low');  % Butterworth filter
+% [sos,g] = zp2sos(z,p,k);
+% % freqz(sos, 2^14, fs)
+% signal = filtfilt(sos,g,signal);
+% plot(t,signal,'r','linewidth',1)
+% title(sprintf('Raw EGG: %s',filename(1:end-4))); 
+% xlabel('Time (min)')
+% legend('raw','lowpass filtered at 0.1 Hz','Location','southeast')
+% axis tight
 
 % Smooth using a span of 10% of data points
 % tic
@@ -86,7 +78,6 @@ axis tight
 % toc
 
 % % Highpass filter
-% fc = 0.005;                       % cutoff freq
 % Wn = fc/nf;                       % normalized cutoff frequency
 % [z,p,k] = butter(3,Wn,'high');    % Butterworth filter
 % [sos,g] = zp2sos(z,p,k);
@@ -94,6 +85,30 @@ axis tight
 % signal = filtfilt(sos,g,signal);
 % hold on
 % plot(t, signal,'b','linewidth',1.5)
+
+% % Interpolate NaNs if any
+% tf = isnan(signal);
+% if sum(tf)>0
+%     warning('%g NaNs detected --> interpolating them',sum(tf))
+%     ix = 1:length(signal);
+%     signal(tf) = interp1(ix(~tf),signal(~tf),ix(tf));
+% end
+
+% convert to minutes
+t = EEG.times ./ 1000 ./ 60;
+signal = EEG.data;
+
+% Plot raw signal
+figure('color','w'); 
+subplot(2,1,1)
+% envelope(signal,fs*5,'peak')
+% plot(t,signal,'k-.')
+plot(t,signal,'k')
+hold on; axis tight; 
+title(sprintf("Raw time series - File %s ",filename(1:end-4)));
+xlabel("Time (min)"); ylabel('Amplitude')
+fs = EEG.srate;
+
 
 % Add bar to indicate eating event (test_005)
 if str2double(filename(8)) == 5
@@ -128,6 +143,8 @@ plot(f, power)
 title('Lomb-Scargle Periodogram')
 xlabel('Frequency (cpm)'); ylabel('Normalized Power')
 axis tight
+
+set(findall(gcf,'type','axes'),'fontSize',12,'fontweight','bold');
 
 print(gcf, fullfile(dataDir,sprintf('%s.png',filename(1:end-4))),'-dpng','-r300');   % 300 dpi .png
 
