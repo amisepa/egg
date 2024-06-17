@@ -1,46 +1,64 @@
 %% Filter and plot electroencephalography (EGG) signal
-% clear; close all; clc
-% 
-% mainDir = 'G:\Shared drives\Grants\Granters (Foundations + Funders)\Bial\2022\(000) Yount_Bial_2022\Telly Belly Research';
-% codeDir = fullfile(mainDir, 'eeg_code');
-% dataDir = fullfile(mainDir, 'tests');
-% cd(dataDir)
-% eeglab; close;
+clear; close all; clc
 
-filename = 'test_020.edf';
+mainDir = 'G:\Shared drives\Grants\Granters (Foundations + Funders)\Bial\2022\(000) Yount_Bial_2022\Telly Belly Research';
+codeDir = fullfile(mainDir, 'eeg_code');
+dataDir = fullfile(mainDir, 'tests');
+cd(dataDir)
+eeglab; close;
 
-newFs = 100;        % downsampling to this freq (in Hz)
+filename = 'test_028.edf';
+
 lowpass = 0.1;      % cutoff freq for lowpass filter (in Hz)
-highpass = 0.001;   % cutoff freq for lowpass filter (in Hz)
+highpass = 0.005;   % cutoff freq for lowpass filter (in Hz)
+
+% Load .csv file
+% tmp = readmatrix(fullfile(dataDir, filename));
+% t = tmp(:,1)';
+% signal = tmp(:,2)';
 
 % load EDF file
-EEG = import_edf(fullfile(dataDir,filename));
-
-% Remove bad segments with large artifacts
-% pop_eegplot(EEG,1,1,1);
-if str2double(filename(8)) == 3
-    EEG = eeg_eegrej(EEG, [892 339384;1454636 1542091;1735657 1882719;2160500 2188274;2222102 2244000]);
-elseif str2double(filename(8)) == 5
-    EEG = eeg_eegrej( EEG, [3370505 4802000]);
-% elseif str2double(filename(8)) == 6
-%     EEG = eeg_eegrej( EEG, [32751 36500] );
-elseif str2double(filename(7:8)) == 19
-    EEG = eeg_eegrej( EEG, [1 5709;14189 15458]);
-elseif str2double(filename(7:8)) == 20
-    EEG = eeg_eegrej( EEG, [1 9181;49982 52375]);
-elseif str2double(filename(7:8)) == 21
-    EEG = eeg_eegrej( EEG, [1 5240;41869 43000]);
-elseif str2double(filename(7:8)) == 22
-    EEG = eeg_eegrej( EEG, [1 13957;48916 57500]);
-
-end
+EGG = import_edf(fullfile(dataDir,filename));
 
 % Downsample to 100 Hz
-EEG = pop_resample(EEG, newFs);
+if EGG.srate > 100
+    EGG = pop_resample(EGG, 100);
+end
+
+% Remove bad segments with large artifacts
+% pop_eegplot(EGG,1,1,1);
+% EGG = eeg_eegrej(EGG, [892 339384;1454636 1542091;1735657 1882719;2160500 2188274;2222102 2244000]);
+
+% Reject bad segments manually
+mycommand = '[tmpgood, com] = eeg_eegrej(EGG,eegplot2event(TMPREJ,-1));';
+eegplot(EGG.data,'winlength',EGG.xmax+5,'srate',EGG.srate,'spacing', ...
+    max(EGG.data)-min(EGG.data)*1.5,'command',mycommand,...
+        'title','Select bad portions manually and click Reject');
+reply = input("DONE CLEANING (y/n)? \n ", 's');
+badData = [];
+if strcmpi(reply,'n') 
+    return
+elseif strcmpi(reply,'y')
+    if ~isempty(com)
+        badData = extractBetween(com, ',',')');
+        badData = cellfun(@str2num, badData, 'UniformOutput', false);
+        badData = badData{:};
+    end
+
+    % if remaining data is < 10 s, all data are bad
+    if EGG.pnts - sum(badData(:,2)-badData(:,1)) < EGG.srate*10
+        % badData = [1 EGG.pnts];
+        warning("Whole file is bad. aborting")
+        return
+    end
+
+    % remove
+    EGG = pop_select(EGG, 'nopoint', badData);
+end
 
 % filter signal
-EEG = pop_eegfiltnew(EEG, 'locutoff',highpass);
-EEG = pop_eegfiltnew(EEG, 'hicutoff',lowpass);
+EGG = pop_eegfiltnew(EGG, 'locutoff',highpass);
+EGG = pop_eegfiltnew(EGG, 'hicutoff',lowpass);
 
 % % Sample rate and Nyquist freq (times must be minutes!)
 % total_time = t(end)-t(1);
@@ -95,39 +113,39 @@ EEG = pop_eegfiltnew(EEG, 'hicutoff',lowpass);
 % end
 
 % convert to minutes
-t = EEG.times ./ 1000 ./ 60;
-signal = EEG.data;
+t = EGG.times ./ 1000 ./ 60;
+signal = EGG.data;
 
 % Plot raw signal
 figure('color','w'); 
 subplot(2,1,1)
 % envelope(signal,fs*5,'peak')
 % plot(t,signal,'k-.')
-plot(t,signal,'k')
+plot(t,signal,'k','LineWidth',1)
 hold on; axis tight; 
 title(sprintf("Raw time series - File %s ",filename(1:end-4)));
 xlabel("Time (min)"); ylabel('Amplitude')
-fs = EEG.srate;
+fs = EGG.srate;
 
 
-% Add bar to indicate eating event (test_005)
-if str2double(filename(8)) == 5
-    y_limits = ylim; 
-
-    % Eating start
-    idx = find(round(t)==11, 1);
-    line([t(idx) t(idx)], y_limits,'color','black','linewidth',1)
-    text(t(idx), y_limits(2), 'Eating start', ...
-        'HorizontalAlignment','right','VerticalAlignment','top','Color','black')
-
-    % Eating end
-    idx = find(round(t)==16, 1);
-    line([t(idx) t(idx)], y_limits,'color','black','linewidth',1)
-    text(t(idx), y_limits(2), 'Eating end', ...
-        'HorizontalAlignment','right','VerticalAlignment','top','Color','black')
-
-    legend('raw','lowpass filtered at 0.1 Hz', '', '')
-end
+% % Add bar to indicate eating event (test_005)
+% if str2double(filename(8)) == 5
+%     y_limits = ylim; 
+% 
+%     % Eating start
+%     idx = find(round(t)==11, 1);
+%     line([t(idx) t(idx)], y_limits,'color','black','linewidth',1)
+%     text(t(idx), y_limits(2), 'Eating start', ...
+%         'HorizontalAlignment','right','VerticalAlignment','top','Color','black')
+% 
+%     % Eating end
+%     idx = find(round(t)==16, 1);
+%     line([t(idx) t(idx)], y_limits,'color','black','linewidth',1)
+%     text(t(idx), y_limits(2), 'Eating end', ...
+%         'HorizontalAlignment','right','VerticalAlignment','top','Color','black')
+% 
+%     legend('raw','lowpass filtered at 0.1 Hz', '', '')
+% end
 
 % Lomb-Scargle Periodogram
 disp("Computing Lomb-scargle periodogram...")
