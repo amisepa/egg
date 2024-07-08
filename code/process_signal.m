@@ -1,13 +1,14 @@
 %% Filter and plot electroencephalography (EGG) signal
 % clear; close all; clc
-% 
+
 % mainDir = 'G:\Shared drives\Grants\Granters (Foundations + Funders)\Bial\2022\(000) Yount_Bial_2022\Telly Belly Research';
 % codeDir = fullfile(mainDir, 'eeg_code');
-% dataDir = fullfile(mainDir, 'tests');
+% % dataDir = fullfile(mainDir, 'tests');
+% dataDir = 'C:\Users\Cedric Cannard\Downloads';
 % cd(dataDir)
 % eeglab; close;
 
-filename = 'test_028jess.edf';
+filename = 'test_013.edf';
 
 lowpass = 0.1;      % cutoff freq for lowpass filter (in Hz)
 highpass = 0.005;   % cutoff freq for lowpass filter (in Hz)
@@ -149,12 +150,12 @@ fs = EGG.srate;
 
 % Lomb-Scargle Periodogram
 disp("Computing Lomb-scargle periodogram...")
-n = length(signal);
-times = (0:n-1) / fs;
-fmin = 0.005; % min freq in Hz (e.g., 0.005 Hz)
-fmax = 0.1;   % max freq in Hz (e.g., 0.1 Hz)
+% n = length(signal);
+% times = (0:n-1) / fs;
+fmin = highpass; % min freq in Hz (e.g., 0.005 Hz)
+fmax = lowpass;   % max freq in Hz (e.g., 0.1 Hz)
 freqs = linspace(fmin, fmax, 1000); % 1000 frequency points
-[power, f] = plomb(signal, times, freqs, 'normalized');
+[power, f] = plomb(signal, t*60, freqs, 'normalized');
 f = f * 60; % convert to cpm (cycles per minute)
 subplot(2,1,2)
 plot(f, power)
@@ -168,65 +169,65 @@ print(gcf, fullfile(dataDir,sprintf('%s.png',filename(1:end-4))),'-dpng','-r300'
 
 %% Truncate file test_005
 
-figure('color','w')
-
-% Before eating
-idx = find(round(t)==11, 1);
-t2 = t(1:idx);
-signal2 = signal(1:idx);
-subplot(3,2,1)
-plot(t2,signal2,'r','linewidth',1)
-title("Before eating"); xlabel('Time (min)'); axis tight
-n = length(signal2); 
-times = (0:n-1) / fs;
-fmin = 0.005; fmax = 0.1;
-freqs = linspace(fmin, fmax, 1000);
-[power, f] = plomb(signal2, times, freqs, 'normalized');
-f = f * 60; % convert to cpm (cycles per minute)
-subplot(3,2,2)
-plot(f, power)
-title('Lomb-Scargle Periodogram')
-xlabel('Frequency (cpm)'); ylabel('Normalized Power'); axis tight
-
-% During eating
-idx1 = find(round(t)==11, 1);
-idx2 = find(round(t)==16, 1);
-t2 = t(idx1:idx2);
-signal2 = signal(idx1:idx2);
-subplot(3,2,3)
-plot(t2,signal2,'r','linewidth',1)
-title("After eating"); xlabel('Time (min)'); axis tight
-n = length(signal2); 
-times = (0:n-1) / fs;
-fmin = 0.005; fmax = 0.1;
-freqs = linspace(fmin, fmax, 1000);
-[power, f] = plomb(signal2, times, freqs, 'normalized');
-f = f * 60; % convert to cpm (cycles per minute)
-subplot(3,2,4)
-plot(f, power)
-title('Lomb-Scargle Periodogram')
-xlabel('Frequency (cpm)'); ylabel('Normalized Power'); axis tight
-
-% After eating
-idx = find(round(t)==16, 1);
-t2 = t(idx:end);
-signal2 = signal(idx:end);
-subplot(3,2,5)
-plot(t2,signal2,'r','linewidth',1)
-title("After eating"); xlabel('Time (min)'); axis tight
-n = length(signal2); 
-times = (0:n-1) / fs;
-fmin = 0.005; fmax = 0.1;
-freqs = linspace(fmin, fmax, 1000);
-[power, f] = plomb(signal2, times, freqs, 'normalized');
-f = f * 60; % convert to cpm (cycles per minute)
-subplot(3,2,6)
-plot(f, power)
-title('Lomb-Scargle Periodogram')
-xlabel('Frequency (cpm)'); ylabel('Normalized Power'); axis tight
-
-print(gcf, fullfile(dataDir,sprintf('%s_truncated.png',filename(1:end-4))),'-dpng','-r300');   % 300 dpi .png
-
+% figure('color','w')
+% 
+% % Before eating
+% idx = find(round(t)==11, 1);
+% t2 = t(1:idx);
+% signal2 = signal(1:idx);
+% subplot(3,2,1)
+% plot(t2,signal2,'r','linewidth',1)
+% title("Before eating"); xlabel('Time (min)'); axis tight
+% n = length(signal2); 
+% times = (0:n-1) / fs;
+% fmin = 0.005; fmax = 0.1;
+% freqs = linspace(fmin, fmax, 1000);
+% [power, f] = plomb(signal2, times, freqs, 'normalized');
+% f = f * 60; % convert to cpm (cycles per minute)
+% subplot(3,2,2)
+% plot(f, power)
+% title('Lomb-Scargle Periodogram')
+% xlabel('Frequency (cpm)'); ylabel('Normalized Power'); axis tight
+% 
+% % During eating
+% idx1 = find(round(t)==11, 1);
+% idx2 = find(round(t)==16, 1);
+% t2 = t(idx1:idx2);
+% signal2 = signal(idx1:idx2);
+% subplot(3,2,3)
+% plot(t2,signal2,'r','linewidth',1)
+% title("After eating"); xlabel('Time (min)'); axis tight
+% n = length(signal2); 
+% times = (0:n-1) / fs;
+% fmin = 0.005; fmax = 0.1;
+% freqs = linspace(fmin, fmax, 1000);
+% [power, f] = plomb(signal2, times, freqs, 'normalized');
+% f = f * 60; % convert to cpm (cycles per minute)
+% subplot(3,2,4)
+% plot(f, power)
+% title('Lomb-Scargle Periodogram')
+% xlabel('Frequency (cpm)'); ylabel('Normalized Power'); axis tight
+% 
+% % After eating
+% idx = find(round(t)==16, 1);
+% t2 = t(idx:end);
+% signal2 = signal(idx:end);
+% subplot(3,2,5)
+% plot(t2,signal2,'r','linewidth',1)
+% title("After eating"); xlabel('Time (min)'); axis tight
+% n = length(signal2); 
+% times = (0:n-1) / fs;
+% fmin = 0.005; fmax = 0.1;
+% freqs = linspace(fmin, fmax, 1000);
+% [power, f] = plomb(signal2, times, freqs, 'normalized');
+% f = f * 60; % convert to cpm (cycles per minute)
+% subplot(3,2,6)
+% plot(f, power)
+% title('Lomb-Scargle Periodogram')
+% xlabel('Frequency (cpm)'); ylabel('Normalized Power'); axis tight
+% 
+% print(gcf, fullfile(dataDir,sprintf('%s_truncated.png',filename(1:end-4))),'-dpng','-r300');   % 300 dpi .png
+% 
 
 %% EEGLAB approach
 
