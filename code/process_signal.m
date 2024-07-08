@@ -1,13 +1,13 @@
 %% Filter and plot electroencephalography (EGG) signal
-clear; close all; clc
+% clear; close all; clc
+% 
+% mainDir = 'G:\Shared drives\Grants\Granters (Foundations + Funders)\Bial\2022\(000) Yount_Bial_2022\Telly Belly Research';
+% codeDir = fullfile(mainDir, 'eeg_code');
+% dataDir = fullfile(mainDir, 'tests');
+% cd(dataDir)
+% eeglab; close;
 
-mainDir = 'G:\Shared drives\Grants\Granters (Foundations + Funders)\Bial\2022\(000) Yount_Bial_2022\Telly Belly Research';
-codeDir = fullfile(mainDir, 'eeg_code');
-dataDir = fullfile(mainDir, 'tests');
-cd(dataDir)
-eeglab; close;
-
-filename = 'test_028.edf';
+filename = 'test_028jess.edf';
 
 lowpass = 0.1;      % cutoff freq for lowpass filter (in Hz)
 highpass = 0.005;   % cutoff freq for lowpass filter (in Hz)
