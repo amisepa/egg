@@ -1,14 +1,14 @@
 %% Filter and plot electroencephalography (EGG) signal
-% clear; close all; clc
+clear; close all; clc
 
-% mainDir = 'G:\Shared drives\Grants\Granters (Foundations + Funders)\Bial\2022\(000) Yount_Bial_2022\Telly Belly Research';
-% codeDir = fullfile(mainDir, 'eeg_code');
-% % dataDir = fullfile(mainDir, 'tests');
+mainDir = 'G:\Shared drives\Grants\Granters (Foundations + Funders)\Bial\2022\(000) Yount_Bial_2022\Telly Belly Research';
+codeDir = fullfile(mainDir, 'eeg_code');
+dataDir = fullfile(mainDir, 'tests');
 % dataDir = 'C:\Users\Cedric Cannard\Downloads';
-% cd(dataDir)
-% eeglab; close;
+cd(dataDir)
+eeglab; close;
 
-filename = 'test_013.edf';
+filename = 'test_035.edf';
 
 lowpass = 0.1;      % cutoff freq for lowpass filter (in Hz)
 highpass = 0.005;   % cutoff freq for lowpass filter (in Hz)
@@ -22,21 +22,21 @@ highpass = 0.005;   % cutoff freq for lowpass filter (in Hz)
 EGG = import_edf(fullfile(dataDir,filename));
 
 % Downsample to 100 Hz
-if EGG.srate > 100
-    EGG = pop_resample(EGG, 100);
-end
+% if EGG.srate > 100
+%     EGG = pop_resample(EGG, 100);
+% end
 
 % Remove bad segments with large artifacts
 % pop_eegplot(EGG,1,1,1);
 % EGG = eeg_eegrej(EGG, [892 339384;1454636 1542091;1735657 1882719;2160500 2188274;2222102 2244000]);
 
 % Reject bad segments manually
+badData = []; com = [];
 mycommand = '[tmpgood, com] = eeg_eegrej(EGG,eegplot2event(TMPREJ,-1));';
 eegplot(EGG.data,'winlength',EGG.xmax+5,'srate',EGG.srate,'spacing', ...
     max(EGG.data)-min(EGG.data)*1.5,'command',mycommand,...
         'title','Select bad portions manually and click Reject');
 reply = input("DONE CLEANING (y/n)? \n ", 's');
-badData = [];
 if strcmpi(reply,'n') 
     return
 elseif strcmpi(reply,'y')
@@ -44,6 +44,9 @@ elseif strcmpi(reply,'y')
         badData = extractBetween(com, ',',')');
         badData = cellfun(@str2num, badData, 'UniformOutput', false);
         badData = badData{:};
+    else
+        disp("Nothing removed.")
+        return
     end
 
     % if remaining data is < 10 s, all data are bad

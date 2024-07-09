@@ -2,17 +2,11 @@
 %
 % Cedric Cannard, June 2024
 
-% clear; close all; clc
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%% Hard-coded parameters %%%%%%%%%%%%%%%%%%%%%%%%
 fs          = 100;      % downsample to this freq (in Hz)
 lowpass     = 0.1;      % low-pass filter (in Hz)
 highpass    = 0.005;    % high-pass filter (in Hz)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% % % Add path to folder
-% tmp = fileparts(which('egg_app'));
-% addpath(tmp)
 
 % Select file on computer
 [fileName, filePath] = uigetfile({ '*.edf' }, 'Select .edf file');
@@ -71,13 +65,11 @@ else
     signal = filtfilt(b,a,signal);  % forward/reverse digital filtering in time domain
 end
 
-% figure; plot(signal,'k--'); hold on; plot(signal_filt,'b')
-
 % Highpass filter
 disp("Performing low-pass filter to remove slow-frequency drifts...")
 pb = lowpass;          % pass-band edge
-% tbw = .25*pb;           % transition bandwidth = 25% of pb
-tbw = pb;           % transition bandwidth = 25% of pb
+% tbw = .5*pb;           % transition bandwidth = 50% of pb
+tbw = pb;           % transition bandwidth = pb as in pop_eegfiltnew()
 cutoff = pb+tbw/2;      % cutoff freq
 m = est_filt_order('hamming',fs,tbw);
 [b, a] = design_filt(m, cutoff/(fs/2),'low'); % design filter
@@ -89,7 +81,7 @@ else
 end
 
 
-% convert time to minutes
+% Convert time to minutes
 t = t ./ 1000 ./ 60;
 
 % Remove bad segments
@@ -99,19 +91,13 @@ signal = cleanSignal; t = cleanT;
 % Plot raw signal
 figure('color','w','NumberTitle', 'off','MenuBar', 'none', 'ToolBar', 'none');
 subplot(2,1,1)
-% envelope(signal,fs*5,'peak')
-% plot(t,signal,'k-.')
 plot(t,signal,'k','LineWidth',1)
 hold on; axis tight;
 title(sprintf("Raw time series - File %s ",fileName(1:end-4)));
 xlabel("Time (min)"); ylabel('Amplitude')
-% fs = EGG.srate;
-
 
 % Lomb-Scargle Periodogram
 disp("Computing Lomb-scargle periodogram...")
-% n = length(signal);
-% times = (0:n-1) / fs;
 fmin = highpass;    % min freq in Hz
 fmax = lowpass;     % max freq in Hz
 freqs = linspace(fmin, fmax, 1000); % 1000 frequency points
@@ -126,7 +112,6 @@ set(findall(gcf,'type','axes'),'fontSize',11,'fontweight','bold');
 
 fprintf("Saving plot in the same location: %s \n", fullfile(filePath,sprintf('%s_power-spectrum.png',fileName(1:end-4))))
 print(gcf, fullfile(filePath,sprintf('%s_power-spectrum.png',fileName(1:end-4))),'-dpng','-r300');   % 300 dpi .png
-
 
 
 %% SUBFUNCTIONS
@@ -214,10 +199,19 @@ clear tmp_signal
 
 % Time index
 len = size(signal,2);
-edfTime = edfTime - edfTime(1);
-t = round(linspace(seconds(edfTime(1))*1000, seconds(edfTime(end))*1000, len),3);
+% len = sample;
+t = ( (0:len-1) / fs ) .* 1000;  % in ms
+% edfTime = edfTime - edfTime(1);
+% t = round(linspace(milliseconds(edfTime(1)), milliseconds(edfTime(end)), len),5);
 % times(1:5)
 % t(1:5)
+
+
+% print the total duration (in minutes + seconds)
+len_sec = t(end)/1000;
+fprintf('Total duration: %g min  \n', len_sec);
+fprintf('Total duration: %g min %g sec. \n', floor(len_sec/60), round(mod(len_sec,60)));
+
 end
 
 
