@@ -1,19 +1,20 @@
-%% Filter and plot electroencephalography (EGG) signal
-% clear; close all; clc
-% 
-% mainDir = 'G:\Shared drives\Grants\Granters (Foundations + Funders)\Bial\2022\(000) Yount_Bial_2022\Telly Belly Research';
-% codeDir = fullfile(mainDir, 'eeg_code');
-% dataDir = fullfile(mainDir, 'tests');
-% % dataDir = 'C:\Users\Cedric Cannard\Downloads';
-% cd(dataDir)
-% eeglab; close;
+%% prep
 
-filename = 'test_051.edf';
+clear; close all; clc
+mainDir = 'G:\Shared drives\Grants\Granters (Foundations + Funders)\Bial\2022\(000) Yount_Bial_2022\Telly Belly Research';
+codeDir = fullfile(mainDir, 'eeg_code');
+dataDir = fullfile(mainDir, 'tests');
+cd(dataDir)
+eeglab; close;
 
-% lowpass = 0.1;      % cutoff freq for lowpass filter (in Hz)
-% highpass = 0.01;   % cutoff freq for lowpass filter (in Hz)
+%% Preprocess electroencephalography (EGG) signal and plot time series + periodogram
+
+filename = 'test_058.edf';
+
+% lowpass = 0.1;        % cutoff freq for lowpass filter (in Hz)
+% highpass = 0.01;      % cutoff freq for lowpass filter (in Hz)
 highpass = 0.6 / 60;    % min freq in cpm
-lowpass = 6.0 / 60; % max freq in cpm
+lowpass = 6.0 / 60;     % max freq in cpm (0.1 Hz)
 
 % Load .csv file
 % tmp = readmatrix(fullfile(dataDir, filename));
@@ -51,14 +52,18 @@ elseif strcmpi(reply,'y')
         badData = cellfun(@str2num, badData, 'UniformOutput', false);
         badData = badData{:};
 
-        % if remaining data is < 10 s, all data are bad
-        if EGG.pnts - sum(badData(:,2)-badData(:,1)) < EGG.srate*10
+        % remove frist badData samples (5 s) if missed
+        if badData(1,2)>EGG.srate*5 && badData(1,1)<EGG.srate*5
+            badData(1,1) = 1;
+        end
+
+        % if remaining data is < 5 s, all data are bad
+        if EGG.pnts - sum(badData(:,2)-badData(:,1)) < EGG.srate*5
             % badData = [1 EGG.pnts];
             warning("Whole file is bad. aborting")
             return
         end
-    
-        % remove
+        
         EGG = pop_select(EGG, 'nopoint', badData);
 
     else
@@ -172,11 +177,13 @@ xlabel('Frequency (cpm)'); ylabel('Normalized Power')
 
 % Identify and annotate main peaks
 [peaks, locs] = findpeaks(power, f, 'MinPeakHeight', mean(power) + 3*std(power));
+% outliers = isoutlier(power, 'mean');
+% locs = f(outliers); peaks = power(outliers);
 hold on
 plot(locs, peaks, 'r.','MarkerSize',15)
 text(locs, peaks, string(round(locs,1)), 'VerticalAlignment','bottom', 'HorizontalAlignment','right')
-hold off
 axis tight
+
 
 set(findall(gcf,'type','axes'),'fontSize',12,'fontweight','bold');
 

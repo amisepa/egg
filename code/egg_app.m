@@ -65,7 +65,7 @@ else
     signal = filtfilt(b,a,signal);  % forward/reverse digital filtering in time domain
 end
 
-% Highpass filter
+% Lowpass filter
 disp("Performing low-pass filter to remove slow-frequency drifts...")
 pb = lowpass;          % pass-band edge
 % tbw = .5*pb;           % transition bandwidth = 50% of pb
